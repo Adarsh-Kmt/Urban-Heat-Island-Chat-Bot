@@ -1,71 +1,119 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Card = styled.div`
-  background: white;
-  border: 1px solid #e1e5e9;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: ${props => props.theme.colors.card};
+  border: 1px solid ${props => props.theme.colors.border};
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: ${props => props.theme.colors.shadowLg};
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${props => props.theme.colors.gradient};
+  }
+  
+  &:hover {
+    box-shadow: ${props => props.theme.colors.shadowXl}, ${props => props.theme.colors.glow};
+    transform: translateY(-4px);
+    border-color: ${props => props.theme.colors.accent};
+  }
 `;
 
 const LocationHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  animation: slideInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const LocationName = styled.h3`
-  color: #333;
-  font-size: 18px;
-  font-weight: 600;
+  color: ${props => props.theme.colors.textPrimary};
+  font-size: 20px;
+  font-weight: 700;
   margin: 0;
+  transition: all 0.3s ease;
+  background: ${props => props.theme.colors.gradient};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const LocationIcon = styled.span`
-  font-size: 20px;
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px ${props => props.theme.colors.shadow});
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
 `;
 
 const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.6s ease 0.2s both;
 `;
 
 const InfoItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  padding: 12px;
+  background: ${props => props.theme.colors.gradientAccent};
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    background: ${props => props.theme.colors.hover};
+  }
 `;
 
 const InfoLabel = styled.span`
   font-size: 12px;
-  color: #666;
+  color: ${props => props.theme.colors.textMuted};
   text-transform: uppercase;
   font-weight: 500;
   letter-spacing: 0.5px;
+  transition: color 0.3s ease;
 `;
 
 const InfoValue = styled.span`
   font-size: 14px;
-  color: #333;
+  color: ${props => props.theme.colors.textPrimary};
   font-weight: 500;
+  transition: color 0.3s ease;
 `;
 
 const CoordinatesContainer = styled.div`
-  background: #f8f9fa;
+  background: ${props => props.theme.colors.secondary};
   padding: 12px;
   border-radius: 8px;
   margin-top: 12px;
+  border: 1px solid ${props => props.theme.colors.border};
+  transition: all 0.3s ease;
 `;
 
 const Coordinates = styled.div`
   font-size: 13px;
-  color: #666;
+  color: ${props => props.theme.colors.textSecondary};
   font-family: monospace;
+  transition: color 0.3s ease;
 `;
 
 const ClimateTag = styled.span`
@@ -110,6 +158,8 @@ function getUrbanizationColor(level) {
 }
 
 function LocationCard({ location }) {
+  const { colors } = useTheme();
+  
   if (!location) return null;
 
   return (

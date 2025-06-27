@@ -1,105 +1,182 @@
 import React from 'react';
 import styled from 'styled-components';
-import ReactMarkdown from 'react-markdown';
+import { useTheme } from '../contexts/ThemeContext';
+import LoadingSpinner from './LoadingSpinner';
 
-const MessageWrapper = styled.div`
+const MessageContainer = styled.div`
   display: flex;
-  justify-content: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 `;
 
 const MessageBubble = styled.div`
-  max-width: 70%;
-  min-width: 200px;
-  padding: 16px 20px;
+  max-width: 80%;
+  padding: 18px 22px;
   border-radius: 20px;
-  background: ${props => props.isUser ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#f8f9fa'};
-  color: ${props => props.isUser ? 'white' : '#333'};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  position: relative;
-  
-  ${props => props.isLoading && `
-    opacity: 0.7;
-    &::after {
-      content: '';
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid #333;
-      border-radius: 50%;
-      border-top-color: transparent;
-      animation: spin 1s linear infinite;
-      margin-left: 10px;
-    }
-  `}
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-`;
-
-const MessageText = styled.div`
+  font-size: 15px;
   line-height: 1.6;
   word-wrap: break-word;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
   
-  p {
-    margin-bottom: 12px;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: ${props => props.sender === 'user' 
+      ? props.theme.colors.gradient 
+      : props.theme.colors.gradientAccent};
+    opacity: ${props => props.sender === 'user' ? 1 : 0.5};
+    z-index: -1;
+  }
+  
+  ${props => props.sender === 'user' ? `
+    background: transparent;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 8px;
+    box-shadow: ${props.theme.colors.shadowLg};
+    font-weight: 500;
     
-    &:last-child {
-      margin-bottom: 0;
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: -8px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-top: 12px solid ${props.theme.colors.accent};
     }
+  ` : `
+    background: ${props.theme.colors.card};
+    color: ${props.theme.colors.textPrimary};
+    align-self: flex-start;
+    border-bottom-left-radius: 8px;
+    border: 1px solid ${props.theme.colors.border};
+    box-shadow: ${props.theme.colors.shadowLg};
+    backdrop-filter: blur(10px);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: -8px;
+      width: 0;
+      height: 0;
+      border-right: 8px solid ${props.theme.colors.card};
+      border-top: 12px solid transparent;
+      border-bottom: 12px solid transparent;
+    }
+  `}
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${props => props.theme.colors.shadowXl};
   }
   
-  strong {
-    font-weight: 600;
-  }
+  ${props => props.isLoading && `
+    &::before {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      background-size: 200px 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: calc(200px + 100%) 0; }
+    }
+  `}
   
-  ul, ol {
-    margin: 8px 0;
-    padding-left: 20px;
-  }
-  
-  li {
-    margin-bottom: 4px;
-  }
+  ${props => props.isError && `
+    background: ${props.theme.colors.error};
+    color: white;
+    border-color: ${props.theme.colors.error};
+    animation: shake 0.5s ease-in-out;
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+  `}
 `;
 
-const Timestamp = styled.div`
+const MessageMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
-  color: ${props => props.isUser ? 'rgba(255, 255, 255, 0.7)' : '#666'};
-  margin-top: 8px;
-  text-align: ${props => props.isUser ? 'right' : 'left'};
+  color: ${props => props.theme.colors.textMuted};
+  ${props => props.sender === 'user' ? 'align-self: flex-end;' : 'align-self: flex-start;'}
+  margin-bottom: 4px;
 `;
 
-const LocationButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+const LocationChip = styled.button`
+  background: ${props => props.theme.colors.info};
   color: white;
-  padding: 8px 16px;
+  border: none;
+  padding: 4px 8px;
   border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
-  margin-top: 12px;
-  font-size: 14px;
   transition: all 0.2s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: ${props => props.theme.colors.accent};
     transform: translateY(-1px);
   }
 `;
 
-const ErrorMessage = styled.div`
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 8px;
-  font-size: 14px;
+const MessageContent = styled.div`
+  white-space: pre-wrap;
+  
+  strong {
+    font-weight: 600;
+    color: ${props => props.sender === 'user' ? 'rgba(255, 255, 255, 0.95)' : props.theme.colors.textPrimary};
+  }
+  
+  em {
+    font-style: italic;
+    color: ${props => props.sender === 'user' ? 'rgba(255, 255, 255, 0.9)' : props.theme.colors.textSecondary};
+  }
+  
+  /* Style markdown-like formatting */
+  h3 {
+    font-weight: 600;
+    margin: 12px 0 8px 0;
+    color: ${props => props.sender === 'user' ? 'white' : props.theme.colors.textPrimary};
+    font-size: 16px;
+  }
+  
+  ul {
+    margin: 8px 0;
+    padding-left: 20px;
+    
+    li {
+      margin: 4px 0;
+      color: ${props => props.sender === 'user' ? 'rgba(255, 255, 255, 0.9)' : props.theme.colors.textSecondary};
+    }
+  }
 `;
 
 function ChatMessage({ message, onLocationClick }) {
-  const isUser = message.sender === 'user';
+  const { colors } = useTheme();
   
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], { 
@@ -109,33 +186,31 @@ function ChatMessage({ message, onLocationClick }) {
   };
 
   return (
-    <MessageWrapper isUser={isUser}>
-      <MessageBubble isUser={isUser} isLoading={message.isLoading}>
-        <MessageText>
-          {isUser ? (
-            message.text
-          ) : (
-            <ReactMarkdown>{message.text}</ReactMarkdown>
-          )}
-        </MessageText>
-        
-        {message.location && !isUser && (
-          <LocationButton onClick={onLocationClick}>
-            📍 View {message.location.name} Details
-          </LocationButton>
+    <MessageContainer>
+      <MessageMeta sender={message.sender}>
+        <span>{message.sender === 'user' ? 'You' : 'AI Assistant'}</span>
+        <span>•</span>
+        <span>{formatTime(message.timestamp)}</span>
+        {message.location && (
+          <>
+            <span>•</span>
+            <LocationChip onClick={onLocationClick}>
+              📍 {message.location.city || message.location.name}
+            </LocationChip>
+          </>
         )}
-        
-        {message.isError && (
-          <ErrorMessage>
-            There was an error processing your request. Please try again.
-          </ErrorMessage>
-        )}
-        
-        <Timestamp isUser={isUser}>
-          {formatTime(message.timestamp)}
-        </Timestamp>
+      </MessageMeta>
+      
+      <MessageBubble 
+        sender={message.sender}
+        isLoading={message.isLoading}
+        isError={message.isError}
+      >
+        <MessageContent sender={message.sender}>
+          {message.text}
+        </MessageContent>
       </MessageBubble>
-    </MessageWrapper>
+    </MessageContainer>
   );
 }
 
